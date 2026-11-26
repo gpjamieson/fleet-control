@@ -34,6 +34,10 @@
       padding: 18px;
       margin-bottom: 16px;
     }
+    .card.master-card {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, #1e293b 0%, #172033 100%);
+    }
     .card-title {
       font-size: 0.85rem;
       text-transform: uppercase;
@@ -100,6 +104,16 @@
     <h1>Chromebook Fleet Control</h1>
     <div class="subtitle">Red = Blocked across fleet &bull; Grey = Allowed (Open)</div>
 
+    <div class="card master-card">
+      <div class="toggle-row">
+        <div>
+          <div class="label-main">Global Master Switch (All Categories)</div>
+          <div class="label-sub">Flip OFF to unlock all categories, then enable individual locks below</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="master_switch" onchange="toggleAllCategories(this.checked)"><span class="slider"></span></label>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">Category Locks</div>
       <div class="toggle-row">
@@ -107,28 +121,35 @@
           <div class="label-main">Block YouTube</div>
           <div class="label-sub">Blocks youtube.com &amp; youtu.be (keeps Google login working)</div>
         </div>
-        <label class="switch"><input type="checkbox" id="block_youtube"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" class="cat-toggle" id="block_youtube" onchange="syncMasterSwitch()"><span class="slider"></span></label>
       </div>
       <div class="toggle-row">
         <div>
           <div class="label-main">Block AI Chatbots</div>
-          <div class="label-sub">ChatGPT, OpenAI, Claude, Gemini, Perplexity, Copilot</div>
+          <div class="label-sub">ChatGPT, OpenAI, Claude, Gemini, Perplexity, Copilot, Poe</div>
         </div>
-        <label class="switch"><input type="checkbox" id="block_ai"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" class="cat-toggle" id="block_ai" onchange="syncMasterSwitch()"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="label-main">Block Search Engines</div>
+          <div class="label-sub">Google Search, Bing, DuckDuckGo, Yahoo, Brave (keeps Classroom/Docs open)</div>
+        </div>
+        <label class="switch"><input type="checkbox" class="cat-toggle" id="block_search" onchange="syncMasterSwitch()"><span class="slider"></span></label>
       </div>
       <div class="toggle-row">
         <div>
           <div class="label-main">Block Web Games</div>
           <div class="label-sub">Poki, Coolmath Games, CrazyGames, Y8, Friv</div>
         </div>
-        <label class="switch"><input type="checkbox" id="block_games"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" class="cat-toggle" id="block_games" onchange="syncMasterSwitch()"><span class="slider"></span></label>
       </div>
       <div class="toggle-row">
         <div>
           <div class="label-main">Block Social Media</div>
           <div class="label-sub">TikTok, Instagram, Snapchat, Discord, Reddit, X/Twitter</div>
         </div>
-        <label class="switch"><input type="checkbox" id="block_social"><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" class="cat-toggle" id="block_social" onchange="syncMasterSwitch()"><span class="slider"></span></label>
       </div>
     </div>
 
@@ -160,6 +181,17 @@
   <script>
     let customDomains = [];
     let currentSha = null;
+
+    function toggleAllCategories(state) {
+      document.querySelectorAll(".cat-toggle").forEach(el => {
+        el.checked = state;
+      });
+    }
+
+    function syncMasterSwitch() {
+      const toggles = Array.from(document.querySelectorAll(".cat-toggle"));
+      document.getElementById("master_switch").checked = toggles.some(el => el.checked);
+    }
 
     function showStatus(msg, isErr = false) {
       const box = document.getElementById("statusBox");
@@ -209,7 +241,6 @@
       document.getElementById("ghRepo").value = repo;
       document.getElementById("ghToken").value = token;
 
-      // Auto-detect owner/repo if hosted on GitHub Pages
       if (!owner && window.location.hostname.endsWith(".github.io")) {
         const autoOwner = window.location.hostname.split(".")[0];
         const autoRepo = window.location.pathname.split("/").filter(Boolean)[0] || "";
@@ -232,8 +263,11 @@
 
         document.getElementById("block_youtube").checked = !!decoded.block_youtube;
         document.getElementById("block_ai").checked = !!decoded.block_ai;
+        document.getElementById("block_search").checked = !!decoded.block_search;
         document.getElementById("block_games").checked = !!decoded.block_games;
         document.getElementById("block_social").checked = !!decoded.block_social;
+        syncMasterSwitch();
+
         customDomains = Array.isArray(decoded.extra_blocked_domains) ? decoded.extra_blocked_domains : [];
         renderTags();
         showStatus("Connected! Live policy loaded from GitHub.");
@@ -255,6 +289,7 @@
       const payload = {
         block_youtube: document.getElementById("block_youtube").checked,
         block_ai: document.getElementById("block_ai").checked,
+        block_search: document.getElementById("block_search").checked,
         block_games: document.getElementById("block_games").checked,
         block_social: document.getElementById("block_social").checked,
         extra_blocked_domains: customDomains
