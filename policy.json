@@ -1,5 +1,5 @@
 {
-  "block_youtube": false,
+  "block_youtube": true,
   "block_ai": false,
   "block_games": false,
   "block_social": false,
