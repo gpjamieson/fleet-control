@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chromebook Fleet Policy Control</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .container { width: 100%; max-width: 640px; }
+    h1 { margin: 0 0 6px; font-size: 1.5rem; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin: 0 0 14px;
+      font-weight: 700;
+    }
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .toggle-row:first-of-type { padding-top: 0; }
+    .label-main { font-weight: 600; font-size: 1rem; }
+    .label-sub { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+    .switch { position: relative; display: inline-block; width: 52px; height: 28px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background-color: #475569; transition: 0.25s; border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 20px; width: 20px;
+      left: 4px; bottom: 4px; background-color: white;
+      transition: 0.25s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--danger); }
+    input:checked + .slider:before { transform: translateX(24px); }
+    .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
+    input[type="text"], input[type="password"] {
+      flex: 1; background: #0f172a; border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 0.95rem;
+    }
+    button {
+      background: var(--accent); color: #0f172a; border: none;
+      padding: 10px 16px; border-radius: 8px; font-weight: 700;
+      cursor: pointer; font-size: 0.95rem;
+    }
+    button:hover { opacity: 0.9; }
+    button.secondary { background: #334155; color: var(--text); }
+    button.publish { width: 100%; padding: 14px; font-size: 1.05rem; background: var(--success); color: #052e16; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag {
+      background: #0f172a; border: 1px solid var(--border);
+      padding: 5px 10px; border-radius: 6px; font-size: 0.85rem;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .tag span { cursor: pointer; color: var(--danger); font-weight: bold; }
+    .status {
+      margin-top: 12px; padding: 10px 12px; border-radius: 8px;
+      font-size: 0.9rem; display: none;
+    }
+    .status.ok { display: block; background: rgba(34, 197, 94, 0.15); border: 1px solid var(--success); color: #86efac; }
+    .status.err { display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Chromebook Fleet Control</h1>
+    <div class="subtitle">Red = Blocked across fleet &bull; Grey = Allowed (Open)</div>
+
+    <div class="card">
+      <div class="card-title">Category Locks</div>
+      <div class="toggle-row">
+        <div>
+          <div class="label-main">Block YouTube</div>
+          <div class="label-sub">Blocks youtube.com &amp; youtu.be (keeps Google login working)</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="block_youtube"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="label-main">Block AI Chatbots</div>
+          <div class="label-sub">ChatGPT, OpenAI, Claude, Gemini, Perplexity, Copilot</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="block_ai"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="label-main">Block Web Games</div>
+          <div class="label-sub">Poki, Coolmath Games, CrazyGames, Y8, Friv</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="block_games"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="label-main">Block Social Media</div>
+          <div class="label-sub">TikTok, Instagram, Snapchat, Discord, Reddit, X/Twitter</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="block_social"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Custom Blocked Domains</div>
+      <div class="input-group">
+        <input type="text" id="newDomain" placeholder="e.g. kahoot.it or wikipedia.org" />
+        <button class="secondary" onclick="addDomain()">Add</button>
+      </div>
+      <div class="tags" id="domainTags"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">GitHub Connection (Saved in Browser Only)</div>
+      <div class="grid-2">
+        <input type="text" id="ghOwner" placeholder="GitHub Username" />
+        <input type="text" id="ghRepo" placeholder="Repo Name (e.g. fleet-control)" />
+      </div>
+      <div class="input-group" style="margin-bottom:0;">
+        <input type="password" id="ghToken" placeholder="Fine-Grained GitHub Token (Contents: Read & Write)" />
+        <button class="secondary" onclick="saveCredsAndLoad()">Connect</button>
+      </div>
+    </div>
+
+    <button class="publish" onclick="publishPolicy()">Publish Changes to Fleet</button>
+    <div id="statusBox" class="status"></div>
+  </div>
+
+  <script>
+    let customDomains = [];
+    let currentSha = null;
+
+    function showStatus(msg, isErr = false) {
+      const box = document.getElementById("statusBox");
+      box.textContent = msg;
+      box.className = "status " + (isErr ? "err" : "ok");
+    }
+
+    function renderTags() {
+      const wrap = document.getElementById("domainTags");
+      wrap.innerHTML = "";
+      customDomains.forEach((d, idx) => {
+        const el = document.createElement("div");
+        el.className = "tag";
+        el.innerHTML = `${d} <span onclick="removeDomain(${idx})">&times;</span>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    function addDomain() {
+      const inp = document.getElementById("newDomain");
+      const val = inp.value.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      if (val && !customDomains.includes(val)) {
+        customDomains.push(val);
+        renderTags();
+      }
+      inp.value = "";
+    }
+
+    function removeDomain(idx) {
+      customDomains.splice(idx, 1);
+      renderTags();
+    }
+
+    function saveCredsAndLoad() {
+      localStorage.setItem("ghOwner", document.getElementById("ghOwner").value.trim());
+      localStorage.setItem("ghRepo", document.getElementById("ghRepo").value.trim());
+      localStorage.setItem("ghToken", document.getElementById("ghToken").value.trim());
+      loadPolicy();
+    }
+
+    async function loadPolicy() {
+      const owner = localStorage.getItem("ghOwner") || "";
+      const repo = localStorage.getItem("ghRepo") || "";
+      const token = localStorage.getItem("ghToken") || "";
+
+      document.getElementById("ghOwner").value = owner;
+      document.getElementById("ghRepo").value = repo;
+      document.getElementById("ghToken").value = token;
+
+      // Auto-detect owner/repo if hosted on GitHub Pages
+      if (!owner && window.location.hostname.endsWith(".github.io")) {
+        const autoOwner = window.location.hostname.split(".")[0];
+        const autoRepo = window.location.pathname.split("/").filter(Boolean)[0] || "";
+        document.getElementById("ghOwner").value = autoOwner;
+        document.getElementById("ghRepo").value = autoRepo;
+      }
+
+      const finalOwner = document.getElementById("ghOwner").value.trim();
+      const finalRepo = document.getElementById("ghRepo").value.trim();
+      if (!finalOwner || !finalRepo) return;
+
+      try {
+        const headers = { "Accept": "application/vnd.github+json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(`https://api.github.com/repos/${finalOwner}/${finalRepo}/contents/policy.json`, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const meta = await res.json();
+        currentSha = meta.sha;
+        const decoded = JSON.parse(atob(meta.content.replace(/\n/g, "")));
+
+        document.getElementById("block_youtube").checked = !!decoded.block_youtube;
+        document.getElementById("block_ai").checked = !!decoded.block_ai;
+        document.getElementById("block_games").checked = !!decoded.block_games;
+        document.getElementById("block_social").checked = !!decoded.block_social;
+        customDomains = Array.isArray(decoded.extra_blocked_domains) ? decoded.extra_blocked_domains : [];
+        renderTags();
+        showStatus("Connected! Live policy loaded from GitHub.");
+      } catch (e) {
+        showStatus("Could not load policy.json (" + e.message + "). Check repo/token.", true);
+      }
+    }
+
+    async function publishPolicy() {
+      const owner = document.getElementById("ghOwner").value.trim();
+      const repo = document.getElementById("ghRepo").value.trim();
+      const token = document.getElementById("ghToken").value.trim();
+
+      if (!owner || !repo || !token) {
+        showStatus("Enter your GitHub Username, Repo Name, and Token first.", true);
+        return;
+      }
+
+      const payload = {
+        block_youtube: document.getElementById("block_youtube").checked,
+        block_ai: document.getElementById("block_ai").checked,
+        block_games: document.getElementById("block_games").checked,
+        block_social: document.getElementById("block_social").checked,
+        extra_blocked_domains: customDomains
+      };
+
+      const encoded = btoa(JSON.stringify(payload, null, 2) + "\n");
+
+      try {
+        showStatus("Publishing to GitHub...");
+        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/policy.json`, {
+          method: "PUT",
+          headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: "Update fleet policy via web dashboard",
+            content: encoded,
+            sha: currentSha
+          })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        currentSha = data.content.sha;
+        showStatus("Published! GitHub Pages will update in ~30–60 seconds.");
+      } catch (e) {
+        showStatus("Publish failed (" + e.message + "). Verify token has Contents: Read & Write.", true);
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", loadPolicy);
+  </script>
+</body>
+</html>
