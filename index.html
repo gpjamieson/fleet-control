@@ -97,6 +97,8 @@
     .status.ok { display: block; background: rgba(34, 197, 94, 0.15); border: 1px solid var(--success); color: #86efac; }
     .status.err { display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .helper-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; }
+    .helper-note { color: var(--muted); font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -163,7 +165,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title">GitHub Connection (Saved in Browser Only)</div>
+      <div class="card-title">GitHub Connection (Saved Locally)</div>
       <div class="grid-2">
         <input type="text" id="ghOwner" placeholder="GitHub Username" />
         <input type="text" id="ghRepo" placeholder="Repo Name (e.g. fleet-control)" />
@@ -171,6 +173,10 @@
       <div class="input-group" style="margin-bottom:0;">
         <input type="password" id="ghToken" placeholder="Fine-Grained GitHub Token (Contents: Read & Write)" />
         <button class="secondary" onclick="saveCredsAndLoad()">Connect</button>
+      </div>
+      <div class="helper-row">
+        <span class="helper-note">Need a portable login across browsers?</span>
+        <button class="secondary" style="padding:6px 10px; font-size:0.8rem;" onclick="copyBookmarkUrl()">Copy Auto-Login Bookmark URL</button>
       </div>
     </div>
 
@@ -225,17 +231,50 @@
       renderTags();
     }
 
+    function persistCreds() {
+      const owner = document.getElementById("ghOwner").value.trim();
+      const repo = document.getElementById("ghRepo").value.trim();
+      const token = document.getElementById("ghToken").value.trim();
+      if (owner) localStorage.setItem("ghOwner", owner);
+      if (repo) localStorage.setItem("ghRepo", repo);
+      if (token) localStorage.setItem("ghToken", token);
+    }
+
     function saveCredsAndLoad() {
-      localStorage.setItem("ghOwner", document.getElementById("ghOwner").value.trim());
-      localStorage.setItem("ghRepo", document.getElementById("ghRepo").value.trim());
-      localStorage.setItem("ghToken", document.getElementById("ghToken").value.trim());
+      persistCreds();
       loadPolicy();
     }
 
+    function copyBookmarkUrl() {
+      const token = document.getElementById("ghToken").value.trim();
+      if (!token) {
+        showStatus("Paste your token first before generating a bookmark link.", true);
+        return;
+      }
+      persistCreds();
+      const baseUrl = window.location.origin + window.location.pathname;
+      const bookmarkUrl = `${baseUrl}#token=${encodeURIComponent(token)}`;
+      navigator.clipboard.writeText(bookmarkUrl).then(() => {
+        showStatus("Auto-login URL copied! Bookmark it in your browser bar for 1-click access.");
+      }).catch(() => {
+        showStatus("Copy this URL to bookmark: " + bookmarkUrl);
+      });
+    }
+
     async function loadPolicy() {
+      // Check URL hash (#token=...) first so bookmarks work even if storage was cleared
+      let hashToken = "";
+      if (window.location.hash.startsWith("#token=")) {
+        hashToken = decodeURIComponent(window.location.hash.slice(7)).trim();
+        if (hashToken) {
+          localStorage.setItem("ghToken", hashToken);
+          history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+      }
+
       const owner = localStorage.getItem("ghOwner") || "";
       const repo = localStorage.getItem("ghRepo") || "";
-      const token = localStorage.getItem("ghToken") || "";
+      const token = hashToken || localStorage.getItem("ghToken") || "";
 
       document.getElementById("ghOwner").value = owner;
       document.getElementById("ghRepo").value = repo;
@@ -270,13 +309,14 @@
 
         customDomains = Array.isArray(decoded.extra_blocked_domains) ? decoded.extra_blocked_domains : [];
         renderTags();
-        showStatus("Connected! Live policy loaded from GitHub.");
+        showStatus(token ? "Connected! Live policy and saved token loaded." : "Loaded public policy (enter token to publish changes).");
       } catch (e) {
         showStatus("Could not load policy.json (" + e.message + "). Check repo/token.", true);
       }
     }
 
     async function publishPolicy() {
+      persistCreds();
       const owner = document.getElementById("ghOwner").value.trim();
       const repo = document.getElementById("ghRepo").value.trim();
       const token = document.getElementById("ghToken").value.trim();
@@ -315,7 +355,7 @@
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         currentSha = data.content.sha;
-        showStatus("Published! GitHub Pages will update in ~30–60 seconds.");
+        showStatus("Published! Token saved locally. GitHub Pages updates in ~30–60 seconds.");
       } catch (e) {
         showStatus("Publish failed (" + e.message + "). Verify token has Contents: Read & Write.", true);
       }
