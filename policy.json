@@ -1,7 +1,7 @@
 {
   "block_youtube": true,
   "block_ai": false,
-  "block_search": false,
+  "block_search": true,
   "block_games": false,
   "block_social": false,
   "extra_blocked_domains": []
